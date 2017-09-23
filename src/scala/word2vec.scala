@@ -20,7 +20,8 @@ object word2vec{
   def main(args: Array[String]) {
     val params = setParameters(args)
     val sc = setSpark(params)
-    val f = sc.sparkContext.textFile(params("files"),params("numPartition").toInt)
+	val files = mkDir(params("root"),"mongo")
+    val f = sc.sparkContext.textFile(files,params("numPartition").toInt)
     val rdd = f.map(_.split(","))
     if (params("to_predict").toBoolean){
       predict(sc,params,rdd)
@@ -31,13 +32,12 @@ object word2vec{
 
   def setSpark(params:Map[String,String]):SparkSession={
     //val master = "local"
-    val master = params("master")
     val spark = SparkSession.builder()
-      .appName("word2vec").master(master)
+      .appName("word2vec").master(params("master"))
       .config("spark.cores.max",params("numCores"))
       .config("spark.executor.memory",params("excutorMemory"))
       .getOrCreate()
-    //val conf = new SparkConf().setAppName("word2vec").setMaster(master)
+    //val conf = new SparkConf().setAppName("word2vec").setMaster(params("master"))
     //val sc = new SparkContext(conf)
     spark
   }
@@ -61,7 +61,8 @@ object word2vec{
     //val result = model.transform(documentDF)
     //result.select("result")
     if (params("save_model").toBoolean){
-          model.save("/user/huyiqing/models/word2vecModel_"+getToday())
+		  val modelDir = mkDir(mkDir(params("root"),"models"),getToday())
+          model.save(modelDir)
     }
     model
   }
@@ -86,7 +87,7 @@ object word2vec{
 
     println("the number of words which not in models is "+i.toString)
     val simDf= sc.createDataFrame(dfLst)
-    simDf.write.format("csv").save(params("sims"))
+    simDf.write.format("csv").save(mkDir(params("root"),params("sims")))
   }
 
   def getToday():String={
@@ -97,7 +98,7 @@ object word2vec{
 
   def getModel(sc:SparkSession,params:Map[String,String],rdd:RDD[Array[String]]):Word2VecModel={
     if (params("use_model").toBoolean) {
-      val model = Word2VecModel.load(params("model"))
+      val model = Word2VecModel.load(mkDir(params("root"),params("model")))
       model
     }else{
       val model= trainModel(sc,params,rdd)
@@ -128,24 +129,35 @@ object word2vec{
     val res = str.replaceAll("(\0|\\s*|\r|\n)", "")
     res
   }
+  
+  def getDir(dir:String,name:String):String={
+	val len = dir.length
+	if (dir(len-1)!="/" && name(0)!="/"){
+		dir+"/"+name
+	}
+	else{
+		dir+name
+	}
+  }
 
   def initParamters():Map[String,String]={
     var dict:Map[String,String]=Map()
     dict+=("vectorSize"->"30")
     dict+=("minCount"->"1")
     dict+=("maxSentenceLength"->"20")
-    dict+=("hdfs"->"hdfs://spark31:9000")
+    dict+=("name"->"word2vec")
     dict+=("numPartition"->"100")
     dict+=("numCores"->"50")
     dict+=("excutorMemory"->"6g")
-    dict+=("model"->"/user/models/20170818")
-    dict+=("sims"->"/user/largeData/sims")
+    dict+=("model"->"20170818")
+    dict+=("sims"->"sims")
     dict+=("save_model"->"true")
     dict+=("use_model"->"true")
     dict+=("to_predict"->"false")
     dict+=("master"->"spark://spark31:7077")
-	dict+=("files"->"/user/largeData/mongo/table")
+	dict+=("root"->"/user/w2v")
   }
+  
   def getTimeStamp():Float={
     val now = new Date()
     val nowStr = now.getTime().toString
