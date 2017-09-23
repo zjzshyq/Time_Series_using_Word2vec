@@ -33,7 +33,7 @@ object word2vec{
   def setSpark(params:Map[String,String]):SparkSession={
     //val master = "local"
     val spark = SparkSession.builder()
-      .appName("word2vec").master(params("master"))
+      .appName(params("name")).master(params("master"))
       .config("spark.cores.max",params("numCores"))
       .config("spark.executor.memory",params("excutorMemory"))
       .getOrCreate()
