@@ -61,7 +61,7 @@ object word2vec{
     //val result = model.transform(documentDF)
     //result.select("result")
     if (params("save_model").toBoolean){
-		  val modelDir = mkDir(mkDir(params("root"),"models"),getToday())
+          val modelDir = mkDir(mkDir(params("root"),"models"),getToday())
           model.save(modelDir)
     }
     model
@@ -98,7 +98,7 @@ object word2vec{
 
   def getModel(sc:SparkSession,params:Map[String,String],rdd:RDD[Array[String]]):Word2VecModel={
     if (params("use_model").toBoolean) {
-      val model = Word2VecModel.load(mkDir(params("root"),params("model")))
+      val model = Word2VecModel.load(mkDir(mkDir(params("root"),"model"),params("model"))))
       model
     }else{
       val model= trainModel(sc,params,rdd)
@@ -155,7 +155,7 @@ object word2vec{
     dict+=("use_model"->"true")
     dict+=("to_predict"->"false")
     dict+=("master"->"spark://spark31:7077")
-	dict+=("root"->"/user/w2v")
+    dict+=("root"->"/user/w2v")
   }
   
   def getTimeStamp():Float={
